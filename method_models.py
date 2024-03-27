@@ -35,7 +35,7 @@ plt.title("Linear Mech. Mirror Lattice Spacing", fontsize=48)
 plt.tick_params(axis='both', labelsize=30)
 
 for i in range(len(f)):
-    a = ms.latspacelargetheta(lam, f[i], D)
+    a = ms.movemirrdoublet(lam, f[i], D)
     plt.plot(D*10**3, a*10**6, label='f={:.0f}mm'.format(f[i]*10**3))
 plt.legend(loc='best', fontsize=28)
 
@@ -54,10 +54,11 @@ ca_in = dims_np[:, 2]*10**-3
 # Begin plot
 fig, axs = plt.subplots(1, 2, layout='constrained')
 fig.suptitle("Telescope Method Parameters for Commercial ETLs", fontsize=44)
-plt.tick_params(axis='both', labelsize=30)
+plt.tick_params(labelsize=30)
 axs[0].set_xlabel("f1 (mm)", fontsize=40)
 axs[0].set_ylabel("D (mm)", fontsize=40)
 axs[0].set_title("Achieveable D ", fontsize=40)
+axs[0].tick_params(labelsize=30)
 axs[1].set_xlabel("Distance D (mm)", fontsize=40)
 axs[1].set_ylabel("Lattice spacing (um)", fontsize=40)
 axs[1].set_title("Lattice w/ 100mm Final Lens", fontsize=40)
@@ -91,7 +92,7 @@ for l in range(len(lens)):
     
     # calculate lattice spacing using only the region where the light begins to
     # hit the lens
-    a_tele = ms.latspacelargetheta(lam, f100, D_i[50:])
+    a_tele = ms.movemirrdoublet(lam, f100, D_i[50:])
     axs[1].plot(D_i[50:]*10**3, a_tele*10**6, label = 'Lens{:}'.format(l+1))
     axs[1].legend(loc='best', fontsize=30)
     
