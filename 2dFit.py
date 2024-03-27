@@ -8,86 +8,9 @@ Created on Tue Mar 26 12:41:09 2024
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from lmfit import minimize, Parameters,Model
 import scipy.optimize as opt
 from PIL import Image
-
-
-
-def sinefit(x, A, k, phi, x0, s, b):
-    y = A * np.sin(k*x + phi)**2 * np.exp(-(x-x0)**2 / (2*s**2)) + b
-    return(y)
-
-def expfit(x, A, data0, sigma, b):
-    output = A * np.exp(-(x - data0)**2 / (2*sigma**2)) + b
-    return(output)
-
-def singaussfit(x_vals, A, k, phi, x0, y0, sigmax, sigmay, off):
-    x, y = x_vals
-    z = A*np.sin(k * x + phi)**2 *np.exp(-(x-x0)**2 / (2*sigmax**2))* np.exp(-(y-y0)**2 / (2*sigmay**2))  + off
-
-
-    # returning the output.ravel important for the array handling in the lmfit 
-    # functions
-    return(z.ravel())
-
-def fitimagesin(ImageOG, camera, title_str, pass_parameters):
-    
-    # Step 1: Convert to um***************************
-    # define new x and y with 0 at plot centre and scaled by pixel length in um
-    # use cropped image size
-    y = np.linspace(-ImageOG.shape[0]/2, ImageOG.shape[0]/2, ImageOG.shape[0]) * camera
-    x = np.linspace(-ImageOG.shape[1]/2, ImageOG.shape[1]/2, ImageOG.shape[1]) * camera
-    
-    
-    x, y = np.meshgrid(x, y)
-    
-    # Use lmfit's Model function to define the fitting model as the sine function
-    # label it for future parameter output readouts
-    Sine_mod1 = Model(singaussfit, prefix='Sin_Mod_')
-    # Define initial pass parameters
-    # NOTE: All variable parameters in fit function must be defined here. 
-    # If not, fit module assigns undefined initial parameters to infinity, which
-    # create NaN values and terminates the fit process
-    
-    # set up the initial guess parameters and convert to um
-    #             [A,   k,   phi, x0,  y0, sigmax, sigmay, off]
-    # ip = pass_parameters * camera
-    iniguess = Sine_mod1.make_params(A=pass_parameters[0], k = pass_parameters[1], 
-                                     phi=pass_parameters[2], x0=pass_parameters[3], 
-                                     y0=pass_parameters[4], sigmax=pass_parameters[5], 
-                                     sigmay=pass_parameters[6], off=pass_parameters[7])
-   
-    
-    
-    # Fit to the data
-    Sin_fit1 = Sine_mod1.fit(ImageOG.ravel(), iniguess, x_vals = (x, y))
-    
-    print(Sin_fit1.fit_report())
-    resu = Sin_fit1.fit_report() #.valuesdict()
-    # create new arrays to model the fit data
-    a = np.linspace(-ImageOG.shape[0]/2*camera, ImageOG.shape[0]/2*camera, 100)
-    b = a
-    a, b = np.meshgrid(a, b)
-    # get out optimized variable parameters
-    fitted = Sin_fit1.eval(x_vals=(a, b))
-    
-    # Plot both original (cropped) image and the fitted curve on top
-    fig, axs = plt.subplots(1, 1)
-    fig.suptitle(title_str)
-    axs.set_xlabel("x (um)")
-    axs.set_ylabel("y (um)")
-    axs.legend(["Image", "Fit Data"], loc='best')
-    c = axs.imshow(ImageOG, cmap=cm.magma, extent=(x.min(), x.max(), y.min(), y.max()))
-    cbar = fig.colorbar(c)
-    cbar.set_label("Intensity")
-    
-    axs.contour(a, b, fitted.reshape(a.shape), 10, colors='w')
-    
-    plt.show()
-    
-    
-    return(Sin_fit1, resu)
+import fittingfuncs as ff
 
 plt.close('all')
 
@@ -158,11 +81,11 @@ x0_g = -54 #  np.where(x_slice==x_slice.max())[0][0]
 p0x = [A_g, k_g, phi_g, x0_g, sx_g, b_g]
 
 # pass to scipy fit function
-A_f, k_f, phi_f, x0_f, sx_f, b_f = opt.curve_fit(sinefit, xr, x_slice, p0x)[0]
+A_f, k_f, phi_f, x0_f, sx_f, b_f = opt.curve_fit(ff.sinefit, xr, x_slice, p0x)[0]
 
 
 # Plot fit data
-xfitdata = sinefit(xr, A_f, k_f, phi_f, x0_f, sx_f, b_f)
+xfitdata = ff.sinefit(xr, A_f, k_f, phi_f, x0_f, sx_f, b_f)
 plt.plot(xr, xfitdata, 'r-')
 plt.legend(["Data Slice", "Fit"], loc='best')
 
@@ -181,9 +104,9 @@ y0_g = 0
 sy_g = 20
 b_y = 80
 p0y = [A_f, y0_g, sy_g, b_y]
-Afy, y0_f, sy_f, by_f = opt.curve_fit(expfit, yr, y_slice, p0y)[0]
+Afy, y0_f, sy_f, by_f = opt.curve_fit(ff.expfit, yr, y_slice, p0y)[0]
 
-yfitdata = expfit(yr, Afy, y0_f, sy_f, by_f)
+yfitdata = ff.expfit(yr, Afy, y0_f, sy_f, by_f)
 plt.plot(yr, yfitdata, 'r-')
 plt.legend(["Data Slice", "Fit"], loc='best')
 
@@ -193,5 +116,5 @@ passparams = np.array([A_f, k_f, phi_f, x0_f, y0_f, sx_f, sy_f, b_f])
 
 # call to the 2D fitting function, which plots the fit in-function
 # return the overall result object and the fit report 
-img, fitrep = fitimagesin(image, pixel_size, title_str, passparams)
+img, fitrep = ff.fitimagesin(image, pixel_size, title_str, passparams)
 
